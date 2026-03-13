@@ -84,15 +84,17 @@
 
   /* HEADLINE */
   .headline-wrap { text-align:center; }
-  .headline-sub { font-family:var(--mono); font-size:clamp(7px,.8vw,10px); font-weight:400; letter-spacing:.1em; color:var(--muted); margin-bottom:clamp(4px,.6vw,8px); }
+  .channel-title { font-family:'Fira Code', monospace; font-size:clamp(9px,1.1vw,14px); font-weight:600; letter-spacing:.08em; color:var(--pink); margin-bottom:clamp(3px,.4vw,6px); }
+  .channel-title span { color:var(--muted); font-weight:300; }
+  .headline-sub { font-family:var(--mono); font-size:clamp(7px,.8vw,10px); font-weight:400; letter-spacing:.1em; color:var(--dim); margin-bottom:clamp(4px,.6vw,8px); }
   .headline { font-family:'Fira Code', monospace; font-size:clamp(22px,5.2vw,72px); font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#f1f5f9; line-height:1; text-shadow:0 0 60px rgba(60,113,221,.15); }
 
   /* COUNTDOWN */
   .countdown-row { display:flex; align-items:center; justify-content:center; gap:clamp(6px,1.5vw,20px); }
   .cdown-unit { display:flex; flex-direction:column; align-items:center; }
-  .cdown-num { font-family:var(--display); font-size:clamp(30px,6.5vw,90px); font-weight:900; letter-spacing:.04em; line-height:1; background:linear-gradient(135deg,#fff 30%,var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .cdown-num { font-family:'Fira Code', monospace; font-size:clamp(30px,6.5vw,90px); font-weight:700; letter-spacing:.04em; line-height:1; background:linear-gradient(135deg,#fff 30%,var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .cdown-label { font-size:clamp(6px,.65vw,9px); font-weight:700; letter-spacing:.22em; color:var(--dim); text-transform:uppercase; margin-top:2px; }
-  .cdown-sep { font-family:var(--display); font-size:clamp(26px,5vw,68px); font-weight:900; color:var(--dim); margin-bottom:clamp(10px,1.8vw,20px); animation:sepBlink 1s step-end infinite; }
+  .cdown-sep { font-family:'Fira Code', monospace; font-size:clamp(26px,5vw,68px); font-weight:700; color:var(--dim); margin-bottom:clamp(10px,1.8vw,20px); animation:sepBlink 1s step-end infinite; }
   @keyframes sepBlink { 0%,100%{opacity:1} 50%{opacity:.1} }
 
   .live-label { font-family:var(--display); font-size:clamp(30px,5.5vw,76px); font-weight:900; letter-spacing:.12em; text-transform:uppercase; background:linear-gradient(90deg,var(--pink),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:livePulse 1s ease-in-out infinite alternate; display:none; }
@@ -194,6 +196,7 @@
     <div class="body">
 
       <div class="headline-wrap">
+        <div class="channel-title"><span>// </span>Livestream Debugando a Vida</div>
         <div class="headline-sub" id="headline-sub">// aguardando inicialização</div>
         <div class="headline" id="headline">STREAM_STARTING_UP</div>
       </div>
