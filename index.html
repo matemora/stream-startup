@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>STREAM_STARTUP</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;0,800;1,400&family=Barlow+Condensed:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0a0a0c;
+    --panel:   #121216;
+    --panel2:  #1a1a20;
+    --panel3:  #16161c;
+    --border:  rgba(255,255,255,0.07);
+    --text:    #e2e8f0;
+    --muted:   #94a3b8;
+    --dim:     #475569;
+    --blue:    #3c71dd;
+    --pink:    #ed5ea6;
+    --green:   #28c840;
+    --mono:    'Fira Code', 'JetBrains Mono', monospace;
+    --display: 'Barlow Condensed', sans-serif;
+  }
+
+  html, body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); overflow:hidden; }
+
+  /* BG */
+  .bg-blobs { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; opacity:.22; }
+  .blob { position:absolute; border-radius:50%; filter:blur(110px); }
+  .blob-blue { width:480px; height:480px; background:var(--blue); top:-100px; left:-80px; }
+  .blob-pink { width:420px; height:420px; background:var(--pink); bottom:-100px; right:-80px; }
+  .bg-grid {
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: linear-gradient(rgba(128,128,128,.07) 1px,transparent 1px), linear-gradient(90deg,rgba(128,128,128,.07) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .scanline {
+    position:fixed; z-index:100; pointer-events:none;
+    width:100%; height:120px;
+    background:linear-gradient(0deg,transparent 0%,rgba(60,113,221,.04) 50%,transparent 100%);
+    animation:scanMove 8s linear infinite;
+  }
+  @keyframes scanMove { from{top:-120px} to{top:100vh} }
+
+  /* CORNERS */
+  .corner { position:fixed; z-index:10; pointer-events:none; display:flex; flex-direction:column; gap:4px; }
+  .corner-bl { bottom:clamp(12px,2.5vw,32px); left:clamp(12px,2.5vw,32px); }
+  .corner-br { bottom:clamp(12px,2.5vw,32px); right:clamp(12px,2.5vw,32px); align-items:flex-end; text-align:right; }
+  .corner-label { font-size:clamp(7px,.9vw,10px); font-weight:700; color:var(--dim); letter-spacing:.15em; text-transform:uppercase; }
+  .corner-value { font-size:clamp(8px,1vw,12px); font-weight:700; color:var(--muted); letter-spacing:.18em; text-transform:uppercase; }
+  .accent-bar { height:3px; width:clamp(28px,3vw,48px); background:var(--blue); }
+
+  /* WRAPPER */
+  .root { position:relative; z-index:1; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; padding:clamp(8px,2vw,48px); }
+
+  /* WINDOW */
+  .window {
+    width:100%; max-width:min(900px,96vw);
+    background:rgba(18,18,22,.92);
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:14px;
+    backdrop-filter:blur(16px);
+    box-shadow: 0 0 0 1px rgba(60,113,221,.08), 0 0 40px rgba(60,113,221,.12), 0 32px 80px rgba(0,0,0,.6);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  /* TITLEBAR */
+  .titlebar { display:flex; align-items:center; justify-content:space-between; padding:clamp(8px,1.2vw,14px) clamp(12px,2vw,24px); background:var(--panel2); border-bottom:1px solid var(--border); flex-shrink:0; }
+  .tb-left { display:flex; align-items:center; gap:10px; }
+  .tb-right { display:flex; align-items:center; gap:clamp(8px,1.5vw,18px); }
+  .dots { display:flex; gap:6px; margin-right:6px; }
+  .dot { width:clamp(9px,1vw,13px); height:clamp(9px,1vw,13px); border-radius:50%; }
+  .dot-r{background:#ff5f57} .dot-y{background:#febc2e} .dot-g{background:#28c840}
+  .tb-icon { color:var(--dim); font-size:clamp(8px,1vw,11px); letter-spacing:.1em; }
+  .tb-title { font-size:clamp(8px,.85vw,11px); font-weight:700; color:var(--dim); letter-spacing:.2em; text-transform:uppercase; }
+  .badge { font-size:clamp(7px,.7vw,9px); font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--blue); border:1px solid rgba(60,113,221,.3); background:rgba(60,113,221,.08); padding:clamp(2px,.4vw,4px) clamp(6px,1vw,12px); border-radius:4px; }
+  .badge-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--blue); margin-right:6px; box-shadow:0 0 6px var(--blue); animation:blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* BODY */
+  .body { padding:clamp(16px,3vw,40px) clamp(16px,3vw,40px); display:flex; flex-direction:column; align-items:center; gap:clamp(10px,1.8vw,22px); }
+
+  /* HEADLINE */
+  .headline-wrap { text-align:center; }
+  .headline-sub { font-family:var(--mono); font-size:clamp(7px,.8vw,10px); font-weight:400; letter-spacing:.1em; color:var(--muted); margin-bottom:clamp(4px,.6vw,8px); }
+  .headline { font-family:'Fira Code', monospace; font-size:clamp(22px,5.2vw,72px); font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#f1f5f9; line-height:1; text-shadow:0 0 60px rgba(60,113,221,.15); }
+
+  /* COUNTDOWN */
+  .countdown-row { display:flex; align-items:center; justify-content:center; gap:clamp(6px,1.5vw,20px); }
+  .cdown-unit { display:flex; flex-direction:column; align-items:center; }
+  .cdown-num { font-family:var(--display); font-size:clamp(30px,6.5vw,90px); font-weight:900; letter-spacing:.04em; line-height:1; background:linear-gradient(135deg,#fff 30%,var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .cdown-label { font-size:clamp(6px,.65vw,9px); font-weight:700; letter-spacing:.22em; color:var(--dim); text-transform:uppercase; margin-top:2px; }
+  .cdown-sep { font-family:var(--display); font-size:clamp(26px,5vw,68px); font-weight:900; color:var(--dim); margin-bottom:clamp(10px,1.8vw,20px); animation:sepBlink 1s step-end infinite; }
+  @keyframes sepBlink { 0%,100%{opacity:1} 50%{opacity:.1} }
+
+  .live-label { font-family:var(--display); font-size:clamp(30px,5.5vw,76px); font-weight:900; letter-spacing:.12em; text-transform:uppercase; background:linear-gradient(90deg,var(--pink),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:livePulse 1s ease-in-out infinite alternate; display:none; }
+  @keyframes livePulse { from{opacity:1} to{opacity:.55} }
+
+  /* PROGRESS */
+  .progress-wrap { width:100%; max-width:min(560px,90vw); }
+  .progress-meta { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:clamp(6px,.8vw,10px); }
+  .prog-left .label { font-size:clamp(7px,.8vw,10px); font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--blue); }
+  .prog-left .sub { font-size:clamp(7px,.7vw,9px); color:var(--dim); margin-top:2px; }
+  .progress-pct { font-size:clamp(14px,2.2vw,26px); font-weight:700; color:var(--pink); }
+  .progress-track { height:clamp(6px,.8vw,11px); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.06); border-radius:999px; overflow:hidden; padding:1px; }
+  .progress-bar { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--blue),var(--pink)); box-shadow:0 0 14px rgba(237,94,166,.45); transition:width .9s cubic-bezier(.4,0,.2,1); }
+
+  /* TERMINAL */
+  .terminal { width:100%; max-width:min(560px,90vw); background:rgba(0,0,0,.45); border:1px solid var(--border); border-radius:8px; padding:clamp(10px,1.5vw,20px) clamp(12px,1.8vw,24px); }
+  .terminal-header { font-size:clamp(7px,.7vw,9px); font-weight:700; letter-spacing:.22em; color:var(--dim); text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:clamp(6px,.8vw,10px); margin-bottom:clamp(8px,1vw,14px); }
+  .terminal-viewport {
+    height: clamp(80px, 10vw, 130px);
+    position: relative;
+    overflow: hidden;
+  }
+  /* top fade mask */
+  .terminal-viewport::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(0,0,0,.55) 0%, transparent 100%);
+    z-index: 2; pointer-events: none;
+  }
+  .terminal-lines {
+    display: flex; flex-direction: column;
+    gap: clamp(6px,.8vw,12px);
+    position: absolute; bottom: 0; left: 0; right: 0;
+    transition: none;
+  }
+  .tline { display:flex; align-items:center; gap:clamp(6px,1vw,12px); transition:opacity .6s; }
+  .tline.fading { opacity:.18; }
+  .tline-icon { font-size:clamp(10px,1.1vw,16px); flex-shrink:0; width:18px; text-align:center; }
+  .tline-text { font-size:clamp(9px,.9vw,13px); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tline.active .tline-text { color:#f1f5f9; }
+  .spin { display:inline-block; animation:spinIcon .7s linear infinite; }
+  @keyframes spinIcon { to{transform:rotate(360deg)} }
+  .cursor { display:inline-block; width:7px; height:1em; background:var(--blue); vertical-align:text-bottom; margin-left:3px; animation:blink .8s step-end infinite; }
+
+  /* FOOTER */
+  .footer { padding:clamp(8px,1vw,14px) clamp(12px,2vw,24px); background:var(--panel3); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; }
+  .footer-left, .footer-right { display:flex; align-items:center; gap:clamp(8px,1.5vw,20px); }
+  .footer-item { display:flex; align-items:center; gap:6px; }
+  .footer-dot { width:7px; height:7px; border-radius:50%; background:var(--pink); box-shadow:0 0 7px rgba(237,94,166,.7); }
+  .footer-text { font-size:clamp(7px,.7vw,10px); font-weight:500; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; }
+  .avatars { display:flex; }
+  .avatar { width:clamp(18px,2vw,26px); height:clamp(18px,2vw,26px); border-radius:50%; border:2px solid var(--panel3); background:var(--panel2); margin-left:-6px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:var(--muted); }
+  .avatar:first-child { margin-left:0; }
+
+  /* RESPONSIVE */
+  @media (orientation:portrait) {
+    .headline { font-size:clamp(16px,7vw,48px); }
+    .cdown-num { font-size:clamp(26px,11vw,68px); }
+    .progress-wrap, .terminal { max-width:100%; }
+  }
+  @media (max-width:480px) {
+    .tb-title { display:none; }
+    .headline { font-size:clamp(14px,8vw,36px); }
+    .cdown-num { font-size:clamp(22px,13vw,56px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-blobs"><div class="blob blob-blue"></div><div class="blob blob-pink"></div></div>
+<div class="bg-grid"></div>
+<div class="scanline"></div>
+
+<div class="corner corner-bl">
+  <div class="accent-bar"></div>
+  <div class="corner-value">SYSTEM_V4.0</div>
+  <div class="corner-label" style="color:var(--pink);letter-spacing:.08em;font-family:'Fira Code',monospace;font-size:clamp(8px,1vw,13px);margin-top:2px;">debugando a vida</div>
+</div>
+<div class="corner corner-br">
+  <div class="corner-label">Stream</div>
+  <div class="corner-value" id="corner-node">NODE_01</div>
+</div>
+
+<div class="root">
+  <div class="window">
+
+    <div class="titlebar">
+      <div class="tb-left">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span class="tb-icon">⌘</span>
+        <span class="tb-title">INITIALIZING_ENVIRONMENT.EXE</span>
+      </div>
+      <div class="tb-right">
+        <div class="badge"><span class="badge-dot"></span>SYSTEM_STATUS: ACTIVE</div>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <div class="headline-wrap">
+        <div class="headline-sub" id="headline-sub">// aguardando inicialização</div>
+        <div class="headline" id="headline">STREAM_STARTING_UP</div>
+      </div>
+
+      <div class="countdown-row" id="countdown-row">
+        <div class="cdown-unit"><div class="cdown-num" id="cd-h">00</div><div class="cdown-label">horas</div></div>
+        <div class="cdown-sep">:</div>
+        <div class="cdown-unit"><div class="cdown-num" id="cd-m">00</div><div class="cdown-label">minutos</div></div>
+        <div class="cdown-sep">:</div>
+        <div class="cdown-unit"><div class="cdown-num" id="cd-s">00</div><div class="cdown-label">segundos</div></div>
+      </div>
+      <div class="live-label" id="live-label">🔴 AO VIVO</div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <div class="prog-left">
+            <div class="label" id="prog-label">PREPARING DEPLOY</div>
+            <div class="sub" id="prog-sub">v4.0.2-stable // core_runtime</div>
+          </div>
+          <div class="progress-pct" id="prog-pct">0%</div>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-header">TERMINAL_LOG</div>
+        <div class="terminal-viewport">
+          <div class="terminal-lines" id="terminal-lines"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <div class="footer-item"><div class="footer-dot"></div><span class="footer-text" id="uptime-el">UPTIME: 00:00:00</span></div>
+        <div class="footer-item"><span style="color:var(--dim);font-size:clamp(9px,1vw,12px)">🗄</span><span class="footer-text">DB_SYNC: OK</span></div>
+      </div>
+      <div class="footer-right">
+        <div class="avatars"><div class="avatar">M</div><div class="avatar">T</div><div class="avatar">+</div></div>
+        <span class="footer-text" id="spec-el">WAITING FOR SPECTATORS...</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+// URL param: ?t=2025-12-31T22:00:00
+function getTarget() {
+  const p = new URLSearchParams(location.search);
+  const raw = p.get('t') || p.get('time') || p.get('start');
+  if (!raw) return new Date(Date.now() + 5 * 60 * 1000); // preview: 5 min
+  const d = new Date(raw);
+  return isNaN(d) ? new Date(Date.now() + 5 * 60 * 1000) : d;
+}
+const TARGET = getTarget();
+
+// ── STEPS ────────────────────────────────────────────────────────────────────
+const STEPS = [
+  { text: 'resolving dependencies...',       pct: 5  },
+  { text: 'loading assets...',               pct: 12 },
+  { text: 'compiling source modules...',     pct: 20 },
+  { text: 'establishing connection...',      pct: 30 },
+  { text: 'authenticating stream token...',  pct: 42 },
+  { text: 'checking prod environment...',    pct: 55 },
+  { text: 'mounting media pipeline...',      pct: 65 },
+  { text: 'syncing CDN endpoints...',        pct: 74 },
+  { text: 'warming up encoder...',           pct: 83 },
+  { text: 'running health checks...',        pct: 90 },
+  { text: 'finalizing stream handshake...',  pct: 97 },
+  { text: 'stream ready. going live...',     pct: 100 },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let step = -1, live = false, uptime = 0;
+
+const $h     = document.getElementById('cd-h');
+const $m     = document.getElementById('cd-m');
+const $s     = document.getElementById('cd-s');
+const $row   = document.getElementById('countdown-row');
+const $lbl   = document.getElementById('live-label');
+const $bar   = document.getElementById('progress-bar');
+const $pct   = document.getElementById('prog-pct');
+const $plbl  = document.getElementById('prog-label');
+const $psub  = document.getElementById('prog-sub');
+const $head  = document.getElementById('headline');
+const $hsub  = document.getElementById('headline-sub');
+const $term  = document.getElementById('terminal-lines');
+const $upt   = document.getElementById('uptime-el');
+const $spec  = document.getElementById('spec-el');
+
+function pad(n) { return String(Math.max(0,n)).padStart(2,'0'); }
+
+// Keep a flat log of all lines ever shown (done + active)
+const logHistory = []; // { text, state: 'done'|'active'|'pending' }
+const MAX_VISIBLE = 4; // how many lines show in the fixed viewport
+
+function renderTerminal(activeIdx) {
+  // Build the full list up to activeIdx + 1 pending
+  const toShow = STEPS.slice(0, Math.min(activeIdx + 2, STEPS.length));
+
+  $term.innerHTML = '';
+
+  toShow.forEach((s, i) => {
+    const done    = i < activeIdx;
+    const current = i === activeIdx;
+    const pending = i > activeIdx;
+
+    const div = document.createElement('div');
+    div.className = 'tline' + (current ? ' active' : '');
+
+    // Lines that are older than MAX_VISIBLE positions from bottom get faded
+    const fromBottom = toShow.length - 1 - i;
+    if (fromBottom >= MAX_VISIBLE) div.classList.add('fading');
+
+    let icon = done
+      ? '<span class="tline-icon" style="color:#28c840">✓</span>'
+      : current
+        ? '<span class="tline-icon spin" style="color:var(--blue)">↻</span>'
+        : '<span class="tline-icon" style="color:var(--dim)">○</span>';
+
+    const opacity = pending ? ' style="opacity:.35"' : '';
+    div.innerHTML = `${icon}<span class="tline-text"${opacity}>${s.text}${current ? '<span class="cursor"></span>' : ''}</span>`;
+    $term.appendChild(div);
+  });
+}
+
+function setProgress(pct, label) {
+  $bar.style.width = pct + '%';
+  $pct.textContent = Math.round(pct) + '%';
+  if (label) $plbl.textContent = label;
+}
+
+function nextStep() {
+  if (live) return;
+  step++;
+  if (step >= STEPS.length) { step = STEPS.length - 1; return; }
+  setProgress(STEPS[step].pct, step < STEPS.length - 1 ? 'PREPARING DEPLOY' : 'FINALIZING...');
+  renderTerminal(step);
+}
+
+function goLive() {
+  if (live) return;
+  live = true;
+  setProgress(100, 'DEPLOYED');
+  step = STEPS.length - 1;
+  renderTerminal(step);
+  $head.textContent  = 'STREAM_ONLINE';
+  $hsub.textContent  = '// conectado com sucesso';
+  $psub.textContent  = 'stream ativo // ao vivo agora';
+  $row.style.display = 'none';
+  $lbl.style.display = 'block';
+  $spec.textContent  = 'ESPECTADORES ONLINE...';
+}
+
+function tick() {
+  uptime++;
+  const uh = Math.floor(uptime/3600), um = Math.floor((uptime%3600)/60), us = uptime%60;
+  $upt.textContent = `UPTIME: ${pad(uh)}:${pad(um)}:${pad(us)}`;
+
+  const rem = TARGET - Date.now();
+  if (rem <= 0) { $h.textContent=$m.textContent=$s.textContent='00'; goLive(); return; }
+  $h.textContent = pad(Math.floor(rem/3600000));
+  $m.textContent = pad(Math.floor((rem%3600000)/60000));
+  $s.textContent = pad(Math.floor((rem%60000)/1000));
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+(function init() {
+  const totalMs = Math.max(TARGET - Date.now(), 1000);
+  const interval = Math.max((totalMs * 0.85) / (STEPS.length - 1), 800);
+
+  renderTerminal(-1);
+  setProgress(0);
+
+  setTimeout(nextStep, 600);
+  const si = setInterval(() => { if (!live && step < STEPS.length - 2) nextStep(); else if (live) clearInterval(si); }, interval);
+
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
